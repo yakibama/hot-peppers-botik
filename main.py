@@ -1,10 +1,11 @@
 import logging
+import os
 from aiogram import Bot, Dispatcher, types
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, LabeledPrice
 from aiogram.filters import Command
 
 # -------------------- CONFIG --------------------
-BOT_TOKEN = "...."   # твой токен
+BOT_TOKEN = os.getenv("BOT_TOKEN")  # твой токен
 GROUP_CHAT_ID = -1002708491399     # твоя группа
 
 CLOUD_LINKS = {
