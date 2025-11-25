@@ -7,7 +7,7 @@ from aiogram.filters import Command
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, LabeledPrice
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")  # 🔥 Токен ТІЛЬКИ з Environment Variables
-GROUP_CHAT_ID = -5088058912
+GROUP_ID = -1002708491399
 
 # ---------------- JSON SYSTEM ----------------
 
