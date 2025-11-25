@@ -71,7 +71,7 @@ async def start_cmd(message: types.Message):
 
     # Відстук про нового юзера
     await bot.send_message(
-        GROUP_CHAT_ID,
+        GROUP_ID,
         f"👋 Новый пользователь: @{message.from_user.username or 'Без ника'} (ID {message.from_user.id})"
     )
 
@@ -85,7 +85,7 @@ async def start_cmd(message: types.Message):
             save_refs(data)
 
             await bot.send_message(
-                GROUP_CHAT_ID,
+                GROUP_ID,
                 f"👥 Новый реферал!\n"
                 f"Пригласил: {inviter_id}\n"
                 f"Пользователь: @{message.from_user.username or 'Без ника'} (ID {message.from_user.id})"
@@ -127,7 +127,7 @@ async def successful_payment(message: types.Message):
     await message.answer("🔥 Оплата успешна! Контент отправится позже.")
 
     await bot.send_message(
-        GROUP_CHAT_ID,
+        GROUP_ID,
         f"💰 Оплата!\nПользователь: @{message.from_user.username or 'Без ника'}"
     )
 
