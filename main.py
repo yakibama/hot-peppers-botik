@@ -4,7 +4,7 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, LabeledPri
 from aiogram.filters import Command
 
 # -------------------- CONFIG --------------------
-BOT_TOKEN = "8202699338:AAHy2QBUXNd0-qELwVlzdnJH5n_iGsQmdSQ"   # твой токен
+BOT_TOKEN = "...."   # твой токен
 GROUP_CHAT_ID = -1002708491399     # твоя группа
 
 CLOUD_LINKS = {
