@@ -1,45 +1,98 @@
-import logging
 import os
+import json
+import asyncio
+
 from aiogram import Bot, Dispatcher, types
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, LabeledPrice
 from aiogram.filters import Command
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, LabeledPrice
 
-# -------------------- CONFIG --------------------
-BOT_TOKEN = os.getenv("BOT_TOKEN")  # твой токен
-GROUP_CHAT_ID = -1002708491399     # твоя группа
+BOT_TOKEN = os.getenv("BOT_TOKEN")  # 🔥 Токен ТІЛЬКИ з Environment Variables
+GROUP_CHAT_ID = -5088058912
 
-CLOUD_LINKS = {
-    "photo": "https://mega.nz/file/b5xxmBgQ#lKfS_bi3hxj8ahiQ7vX2uBnW15gd3041caD2xkeOgFA",
-    "video": "https://mega.nz/folder/OAs0ESQL#FkZD8b9wl5cMwi2Zm2rheA",
-    "premium": "https://mega.nz/folder/OAs0ESQL#FkZD8b9wl5cMwi2Zm2rheA"
-}
+# ---------------- JSON SYSTEM ----------------
 
-PRICES = {
-    "photo": {"amount": 15, "label": "Фото — 15⭐"},
-    "video": {"amount": 25, "label": "Видео — 25⭐"},
-    "premium": {"amount": 50, "label": "Премиум — 50⭐"},
-}
+REF_FILE = "referrals.json"
 
-# ------------------------------------------------
+if not os.path.exists(REF_FILE):
+    with open(REF_FILE, "w") as f:
+        json.dump({}, f)
 
-logging.basicConfig(level=logging.INFO)
-bot = Bot(token=BOT_TOKEN)
-dp = Dispatcher()
 
+def load_refs():
+    with open(REF_FILE, "r") as f:
+        return json.load(f)
+
+
+def save_refs(data):
+    with open(REF_FILE, "w") as f:
+        json.dump(data, f, indent=4)
+
+
+# ---------------- MENU ----------------
 
 def main_menu():
-    return InlineKeyboardMarkup(inline_keyboard=[
+    kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="📸 Фото — 15⭐", callback_data="buy_photo")],
         [InlineKeyboardButton(text="🎬 Видео — 25⭐", callback_data="buy_video")],
         [InlineKeyboardButton(text="👑 Премиум — 50⭐", callback_data="buy_premium")]
     ])
+    return kb
+
+
+# ---------------- BOT INIT ----------------
+
+bot = Bot(BOT_TOKEN)
+dp = Dispatcher()
+
+
+# ---------------- HANDLERS ----------------
+
+@dp.message(Command("ref"))
+async def ref_cmd(message: types.Message):
+    uid = message.from_user.id
+    bot_username = (await bot.me()).username
+    link = f"https://t.me/{bot_username}?start=ref{uid}"
+
+    await message.answer(
+        f"🔗 Ваша реферальная ссылка:\n{link}\n\n"
+        f"Приглашайте друзей 😎"
+    )
 
 
 @dp.message(Command("start"))
 async def start_cmd(message: types.Message):
+    args = message.text.split()
+
+    inviter_id = None
+    if len(args) > 1 and args[1].startswith("ref"):
+        inviter_id = args[1][3:]
+        if inviter_id.isdigit():
+            inviter_id = int(inviter_id)
+
+    # Відстук про нового юзера
+    await bot.send_message(
+        GROUP_CHAT_ID,
+        f"👋 Новый пользователь: @{message.from_user.username or 'Без ника'} (ID {message.from_user.id})"
+    )
+
+    # Реф система
+    if inviter_id and inviter_id != message.from_user.id:
+        data = load_refs()
+        data.setdefault(str(inviter_id), [])
+
+        if str(message.from_user.id) not in data[str(inviter_id)]:
+            data[str(inviter_id)].append(str(message.from_user.id))
+            save_refs(data)
+
+            await bot.send_message(
+                GROUP_CHAT_ID,
+                f"👥 Новый реферал!\n"
+                f"Пригласил: {inviter_id}\n"
+                f"Пользователь: @{message.from_user.username or 'Без ника'} (ID {message.from_user.id})"
+            )
+
     text = (
-        "🌶️ Добро пожаловать в *Hot Peppers!*\n\n"
-        "Здесь вы найдете коллекции премиум-фото и видео.\n\n"
+        "🌶️ Добро пожаловать в *Hot Peppers!* 🔥\n\n"
         "🎯 Доступные коллекции:\n"
         "• Фото — 15⭐\n"
         "• Видео — 25⭐\n"
@@ -47,62 +100,43 @@ async def start_cmd(message: types.Message):
     )
     await message.answer(text, reply_markup=main_menu(), parse_mode="Markdown")
 
-    try:
-        await bot.send_message(
-            GROUP_CHAT_ID,
-            f"👋 Новый пользователь: @{message.from_user.username or 'Без ника'} "
-            f"(id {message.from_user.id})"
-        )
-    except Exception as e:
-        logging.error(f"Ошибка при отправке в группу: {e}")
 
+@dp.callback_query(lambda c: c.data.startswith("buy_"))
+async def process_buy(callback: types.CallbackQuery):
+    item = callback.data.split("_")[1]
+    amount = {"photo": 15, "video": 25, "premium": 50}[item]
 
-async def send_invoice(message: types.Message, item_key: str):
-    item = PRICES[item_key]
     await bot.send_invoice(
-        chat_id=message.chat.id,
-        title=f"{item['label']}",
-        description=f"Оплата за {item['label']} в Hot Peppers 🌶️",
-        payload=f"buy_{item_key}",
-        provider_token="",  # Telegram Stars не требует токена
+        chat_id=callback.from_user.id,
+        title=f"{item} покупка",
+        description=f"Покупка {item} в Hot Peppers 🌶️",
+        payload=f"buy_{item}",
+        provider_token="",  # XTR Stars — токен пустий
         currency="XTR",
-        prices=[LabeledPrice(label=item['label'], amount=item['amount'])],
+        prices=[LabeledPrice(label=item, amount=amount)],
     )
 
 
-@dp.callback_query(lambda c: c.data and c.data.startswith("buy_"))
-async def process_buy(callback_query: types.CallbackQuery):
-    item_key = callback_query.data.split("_")[1]
-    await send_invoice(callback_query.message, item_key)
-
-
 @dp.pre_checkout_query()
-async def pre_checkout_query(pre_checkout_q: types.PreCheckoutQuery):
-    await bot.answer_pre_checkout_query(pre_checkout_q.id, ok=True)
+async def pre_checkout(pre: types.PreCheckoutQuery):
+    await bot.answer_pre_checkout_query(pre.id, ok=True)
 
 
-@dp.message(lambda m: m.successful_payment is not None)
+@dp.message(lambda m: m.successful_payment)
 async def successful_payment(message: types.Message):
-    pay = message.successful_payment
-    payload = pay.invoice_payload.replace("buy_", "")
-    link = CLOUD_LINKS.get(payload, "Ссылка не установлена")
+    await message.answer("🔥 Оплата успешна! Контент отправится позже.")
 
-    await message.answer(f"✅ Оплата прошла успешно!\nВот ваша ссылка: {link}")
+    await bot.send_message(
+        GROUP_CHAT_ID,
+        f"💰 Оплата!\nПользователь: @{message.from_user.username or 'Без ника'}"
+    )
 
-    try:
-        await bot.send_message(
-            GROUP_CHAT_ID,
-            f"💰 Оплата от @{message.from_user.username or 'Без ника'} "
-            f"(id {message.from_user.id}) — {payload} ({pay.total_amount}⭐)"
-        )
-    except Exception as e:
-        logging.error(f"Ошибка при отправке оплаты в группу: {e}")
 
+# ---------------- RUN ----------------
 
 async def main():
     await dp.start_polling(bot)
 
 
 if __name__ == "__main__":
-    import asyncio
     asyncio.run(main())
