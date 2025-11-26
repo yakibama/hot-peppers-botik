@@ -6,10 +6,17 @@ from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, LabeledPrice
 
-BOT_TOKEN = os.getenv("BOT_TOKEN")  # 🔥 Токен ТІЛЬКИ з Environment Variables
+BOT_TOKEN = os.getenv("BOT_TOKEN")
 GROUP_ID = -1002708491399
 
-# ---------------- JSON SYSTEM ----------------
+# ---------------- CLOUD LINKS ----------------
+CLOUD_LINKS = {
+    "photo": "https://mega.nz/file/b5xxmBgQ#lKfS_bi3hxj8ahiQ7vX2uBnW15gd3041caD2xkeOgFA",
+    "video": "https://mega.nz/folder/OAs0ESQL#FkZD8b9wl5cMwi2Zm2rheA",
+    "premium": "https://mega.nz/folder/OAs0ESQL#FkZD8b9wl5cMwi2Zm2rheA"
+}
+
+# ---------------- JSON REF SYSTEM ----------------
 
 REF_FILE = "referrals.json"
 
@@ -69,7 +76,7 @@ async def start_cmd(message: types.Message):
         if inviter_id.isdigit():
             inviter_id = int(inviter_id)
 
-    # Відстук про нового юзера
+    # Відстук
     await bot.send_message(
         GROUP_ID,
         f"👋 Новый пользователь: @{message.from_user.username or 'Без ника'} (ID {message.from_user.id})"
@@ -91,14 +98,15 @@ async def start_cmd(message: types.Message):
                 f"Пользователь: @{message.from_user.username or 'Без ника'} (ID {message.from_user.id})"
             )
 
-    text = (
+    await message.answer(
         "🌶️ Добро пожаловать в *Hot Peppers!* 🔥\n\n"
         "🎯 Доступные коллекции:\n"
         "• Фото — 15⭐\n"
         "• Видео — 25⭐\n"
-        "• Премиум — 50⭐"
+        "• Премиум — 50⭐",
+        reply_markup=main_menu(),
+        parse_mode="Markdown"
     )
-    await message.answer(text, reply_markup=main_menu(), parse_mode="Markdown")
 
 
 @dp.callback_query(lambda c: c.data.startswith("buy_"))
@@ -111,7 +119,7 @@ async def process_buy(callback: types.CallbackQuery):
         title=f"{item} покупка",
         description=f"Покупка {item} в Hot Peppers 🌶️",
         payload=f"buy_{item}",
-        provider_token="",  # XTR Stars — токен пустий
+        provider_token="",  # XTR Stars — provider_token пустий
         currency="XTR",
         prices=[LabeledPrice(label=item, amount=amount)],
     )
@@ -124,11 +132,17 @@ async def pre_checkout(pre: types.PreCheckoutQuery):
 
 @dp.message(lambda m: m.successful_payment)
 async def successful_payment(message: types.Message):
-    await message.answer("🔥 Оплата успешна! Контент отправится позже.")
+    item = message.successful_payment.invoice_payload.replace("buy_", "")
+
+    await message.answer(
+        f"🔥 Оплата успешна!\nВаш доступ к *{item}* готов 👇\n\n"
+        f"{CLOUD_LINKS[item]}",
+        parse_mode="Markdown"
+    )
 
     await bot.send_message(
         GROUP_ID,
-        f"💰 Оплата!\nПользователь: @{message.from_user.username or 'Без ника'}"
+        f"💰 Оплата!\nПользователь: @{message.from_user.username or 'Без ника'}\nКупил: {item}"
     )
 
 
